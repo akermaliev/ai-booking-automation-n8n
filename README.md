@@ -78,4 +78,3 @@ You can adapt this template by:
 ## Design Notes
 
 The system separates conversational AI logic from irreversible operations (approval, calendar updates), improving reliability and control in real-world automation scenarios.
->>>>>>> d5185f0 (Initial commit)
