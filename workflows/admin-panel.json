@@ -1,0 +1,1291 @@
+{
+  "name": "Booking System - Admin Approval Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "callback_query",
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -848,
+        -176
+      ],
+      "id": "eb501c76-43d0-42cf-b6e3-107be5697dd2",
+      "name": "Telegram Trigger",
+      "webhookId": "YOUR_WEBHOOK_ID",
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "YOUR_TELEGRAM_BOT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "414c93b5-9710-41fe-ab35-9b129bc27fdb",
+              "leftValue": "={{$json.callback_query.data}}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -848,
+        32
+      ],
+      "id": "122fd1ad-7865-45f3-b52c-b17b291024eb",
+      "name": "Has Callback Query"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.callback_query?.data || \"\";\nconst parts = raw.split(\"|\");\n\nconst action = (parts[0] || \"\").replace(/^=/, \"\").trim();      // approve / reject / info\nconst requestId = (parts[1] || \"\").replace(/^=/, \"\").trim();   // 11223346\n\nconst adminId = $json.callback_query?.from?.id ?? null;\nconst chatId = $json.callback_query?.message?.chat?.id ?? null;\nconst messageId = $json.callback_query?.message?.message_id ?? null;\n\nreturn [{\n  raw,\n  action,\n  requestId,\n  adminId,\n  chatId,\n  messageId,\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -608,
+        16
+      ],
+      "id": "18bf0810-eade-4ef1-97be-95df4218cd2e",
+      "name": "Parse Admin Action"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.action}}",
+                    "rightValue": "approve",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "f04a5ba6-e5d7-4f11-bd0e-fffafdebf140"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "eaf39c75-e69a-4f87-a7b3-d027feb5fa70",
+                    "leftValue": "={{$json.action}}",
+                    "rightValue": "reject",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5947b50e-1013-433c-910a-8f6fe7927e22",
+                    "leftValue": "={{$json.action}}",
+                    "rightValue": "info",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -416,
+        16
+      ],
+      "id": "4182ffcc-c7e1-4e30-8e7c-5bb41369a32f",
+      "name": "Route Admin Action"
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=[BOOKING SYSTEM] BOOKING DETAILS - #{{$json.requestId}}\\n\\nName: {{$json.name}}\\nPhone: {{$json.phone}}\\nProperty: {{$json.house}}\\nGuests: {{$json.guests}}\\nDates: {{$json.checkIn}} -> {{$json.checkOut}}\\n\\nSauna: {{$json.sauna}}\\nJacuzzi: {{$json.jacuzzi}}\\nHot tub: {{$json.hot_tub}}\\n\\nPayment: {{$json.paymentAmount}} KGS ({{$json.paymentType}})\\nNotes: {{$json.comments}}\\n\\nStatus: {{$json.status}}\\nCreated: {{$json.createdAt}}\\n",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        -96,
+        256
+      ],
+      "id": "2beb5d61-ad3c-40b8-9a41-7f49b5d4f59a",
+      "name": "Notify Admin - Booking Details",
+      "webhookId": "YOUR_WEBHOOK_ID",
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "YOUR_TELEGRAM_BOT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=[BOOKING SYSTEM] APPROVED - #{{$node[\"Lookup Approved Request\"].json.requestId}}\\n\\nSheet and calendar were updated. The guest can now be notified.\\n",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1168,
+        -288
+      ],
+      "id": "ec1a86eb-6cba-467b-952d-695b1a881daf",
+      "name": "Notify Admin - Approved",
+      "webhookId": "YOUR_WEBHOOK_ID",
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "YOUR_TELEGRAM_BOT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=[BOOKING SYSTEM] REJECTED - #{{$node[\"Lookup Rejected Request\"].json.requestId}}\\n\\nPayment was not confirmed. Status has been updated.\\n",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        512,
+        48
+      ],
+      "id": "f2655573-dfa0-40a1-8237-9ccdb7dcf2e4",
+      "name": "Notify Admin - Rejected",
+      "webhookId": "YOUR_WEBHOOK_ID",
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "YOUR_TELEGRAM_BOT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Booking Requests",
+          "cachedResultUrl": "YOUR_SHEET_URL"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 51645431,
+          "mode": "list",
+          "cachedResultName": "Requests",
+          "cachedResultUrl": "YOUR_SHEET_URL#gid=YOUR_SHEET_GID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "APPROVED",
+            "row_number": "={{$node[\"Approve_Lookup\"].json.row_number}}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "contactId",
+              "displayName": "contactId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "requestId",
+              "displayName": "requestId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "createdAt",
+              "displayName": "createdAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "house",
+              "displayName": "house",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "sauna",
+              "displayName": "sauna",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "jacuzzi",
+              "displayName": "jacuzzi",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "hot_tub",
+              "displayName": "hot_tub",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "guests",
+              "displayName": "guests",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "checkIn",
+              "displayName": "checkIn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "checkOut",
+              "displayName": "checkOut",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "paymentAmount",
+              "displayName": "paymentAmount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "paymentType",
+              "displayName": "paymentType",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "comments",
+              "displayName": "comments",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        704,
+        -288
+      ],
+      "id": "0075911f-ce11-47d7-a342-aa8d3a171234",
+      "name": "Update Status - Approved",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets (Template)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Booking Requests",
+          "cachedResultUrl": "YOUR_SHEET_URL"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 51645431,
+          "mode": "list",
+          "cachedResultName": "Requests",
+          "cachedResultUrl": "YOUR_SHEET_URL#gid=YOUR_SHEET_GID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "requestId": "={{$json.requestId}}",
+            "status": "REJECTED"
+          },
+          "matchingColumns": [
+            "requestId"
+          ],
+          "schema": [
+            {
+              "id": "contactId",
+              "displayName": "contactId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "requestId",
+              "displayName": "requestId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "createdAt",
+              "displayName": "createdAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "house",
+              "displayName": "house",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "sauna",
+              "displayName": "sauna",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "jacuzzi",
+              "displayName": "jacuzzi",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "hot_tub",
+              "displayName": "hot_tub",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "guests",
+              "displayName": "guests",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "checkIn",
+              "displayName": "checkIn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "checkOut",
+              "displayName": "checkOut",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "paymentAmount",
+              "displayName": "paymentAmount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "paymentType",
+              "displayName": "paymentType",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "comments",
+              "displayName": "comments",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        48,
+        48
+      ],
+      "id": "59a9aade-f65a-4f23-b037-ee45cf0a6c65",
+      "name": "Update Status - Rejected",
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets (Template)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Booking Requests",
+          "cachedResultUrl": "YOUR_SHEET_URL"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 51645431,
+          "mode": "list",
+          "cachedResultName": "Requests",
+          "cachedResultUrl": "YOUR_SHEET_URL#gid=YOUR_SHEET_GID"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "requestId",
+              "lookupValue": "={{$json.requestId}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -272,
+        256
+      ],
+      "id": "3ea50799-3972-4b21-a37b-fd3229d681de",
+      "name": "Fetch Booking Details",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets (Template)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.house}}",
+                    "rightValue": "Barnhouse P",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "47789945-69ec-4322-9ba5-5df9b0830738"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "d9ddf6e9-a462-42b5-ba66-2c58772c3056",
+                    "leftValue": "={{$json.house}}",
+                    "rightValue": "Barnhouse K",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "9a03ea2d-7243-4697-9a07-dbe98e32db97",
+                    "leftValue": "={{$json.house}}",
+                    "rightValue": "A-Frame Fire",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -48,
+        -304
+      ],
+      "id": "142675f0-a0e6-4fa9-88c3-bd2a7fad457d",
+      "name": "Route by Property"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "YOUR_CALENDAR_ID",
+          "mode": "list",
+          "cachedResultName": "Template Calendar"
+        },
+        "start": "={{$json.checkIn}}\n",
+        "end": "={{$json.checkOut}}",
+        "additionalFields": {
+          "description": "=Property: {{$json.house}} | Guests: {{$json.guests}}\nName: {{$json.name}} | Phone: {{$json.phone}}\nDates: {{$json.checkIn}} ? {{$json.checkOut}}\nPayment: {{$json.paymentAmount}} ({{$json.paymentType}})\nNotes: {{$json.comments}}",
+          "summary": "=[BOOKING SYSTEM] #{{$json.requestId}} ? {{$json.name}}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        -128
+      ],
+      "id": "c151e992-9920-4616-b9be-517388a47cd1",
+      "name": "Create Event - A-Frame Fire",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "YOUR_GOOGLE_CALENDAR_CREDENTIAL_ID",
+          "name": "Google Calendar (Template)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "YOUR_CALENDAR_ID",
+          "mode": "list",
+          "cachedResultName": "Template Calendar"
+        },
+        "start": "={{$json.checkIn}}\n",
+        "end": "={{$json.checkOut}}",
+        "additionalFields": {
+          "description": "=Property: {{$json.house}} | Guests: {{$json.guests}}\nName: {{$json.name}} | Phone: {{$json.phone}}\nDates: {{$json.checkIn}} ? {{$json.checkOut}}\nPayment: {{$json.paymentAmount}} ({{$json.paymentType}})\nNotes: {{$json.comments}}",
+          "summary": "=[BOOKING SYSTEM] #{{$json.requestId}} ? {{$json.name}}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        -288
+      ],
+      "id": "e7f53642-e37a-4333-bf20-6b9bebbd91f4",
+      "name": "Create Event - Barnhouse K",
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "YOUR_GOOGLE_CALENDAR_CREDENTIAL_ID",
+          "name": "Google Calendar (Template)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "YOUR_CALENDAR_ID",
+          "mode": "list",
+          "cachedResultName": "Template Calendar"
+        },
+        "start": "={{$json.checkIn}}\n",
+        "end": "={{$json.checkOut}}",
+        "additionalFields": {
+          "description": "=Property: {{$json.house}} | Guests: {{$json.guests}}\nName: {{$json.name}} | Phone: {{$json.phone}}\nDates: {{$json.checkIn}} ? {{$json.checkOut}}\nPayment: {{$json.paymentAmount}} ({{$json.paymentType}})\nNotes: {{$json.comments}}",
+          "summary": "=[BOOKING SYSTEM] #{{$json.requestId}} ? {{$json.name}}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        -448
+      ],
+      "id": "20330cb3-8588-4d44-80e5-1bb909618143",
+      "name": "Create Event - Barnhouse P",
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "YOUR_GOOGLE_CALENDAR_CREDENTIAL_ID",
+          "name": "Google Calendar (Template)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        512,
+        -304
+      ],
+      "id": "d17abaf5-b127-4a97-8cc2-1a667872284f",
+      "name": "Merge",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Booking Requests",
+          "cachedResultUrl": "YOUR_SHEET_URL"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 51645431,
+          "mode": "list",
+          "cachedResultName": "Requests",
+          "cachedResultUrl": "YOUR_SHEET_URL#gid=YOUR_SHEET_GID"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "requestId",
+              "lookupValue": "={{$json.requestId}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -240,
+        -288
+      ],
+      "id": "1acb1964-e623-44e0-930c-96f6924a33a5",
+      "name": "Lookup Approved Request",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets (Template)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Booking Requests",
+          "cachedResultUrl": "YOUR_SHEET_URL"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 51645431,
+          "mode": "list",
+          "cachedResultName": "Requests",
+          "cachedResultUrl": "YOUR_SHEET_URL#gid=YOUR_SHEET_GID"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "requestId",
+              "lookupValue": "={{$json.requestId}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -144,
+        48
+      ],
+      "id": "6e259a52-8e08-439c-b7c2-ac071fb1043a",
+      "name": "Lookup Rejected Request",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets (Template)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.manychat.com/fb/sending/sendFlow",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "subscriber_id",
+              "value": "={{ Number($node[\"Approve_Lookup\"].json.contactId) }}"
+            },
+            {
+              "name": "flow_ns",
+              "value": "YOUR_MANYCHAT_FLOW_ID_APPROVED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        912,
+        -288
+      ],
+      "id": "5b3edfc3-dda8-4d6d-a324-b4c1361125fa",
+      "name": "Notify User - Approved (ManyChat)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.manychat.com/fb/sending/sendFlow",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_API_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "subscriber_id",
+              "value": "={{ Number($node[\"Reject_Lookup\"].json.contactId) }}"
+            },
+            {
+              "name": "flow_ns",
+              "value": "YOUR_MANYCHAT_FLOW_ID_REJECTED"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        256,
+        48
+      ],
+      "id": "fbcbf9c7-6952-48b3-a72d-1c5dd69c3983",
+      "name": "Notify User - Rejected (ManyChat)"
+    },
+    {
+      "parameters": {
+        "content": "Template workflow notes",
+        "height": 80,
+        "width": 166
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -944,
+        -656
+      ],
+      "id": "27e081a6-fc8f-456f-b69a-24d70e317ace",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Has Callback Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Callback Query": {
+      "main": [
+        [
+          {
+            "node": "Parse Admin Action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Parse Admin Action": {
+      "main": [
+        [
+          {
+            "node": "Route Admin Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Admin Action": {
+      "main": [
+        [
+          {
+            "node": "Lookup Approved Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lookup Rejected Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fetch Booking Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status - Approved": {
+      "main": [
+        [
+          {
+            "node": "Notify User - Approved (ManyChat)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Status - Rejected": {
+      "main": [
+        [
+          {
+            "node": "Notify User - Rejected (ManyChat)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Booking Details": {
+      "main": [
+        [
+          {
+            "node": "Notify Admin - Booking Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Property": {
+      "main": [
+        [
+          {
+            "node": "Create Event - Barnhouse P",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Event - Barnhouse K",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Event - A-Frame Fire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Event - Barnhouse P": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Event - Barnhouse K": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Create Event - A-Frame Fire": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Update Status - Approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Approved Request": {
+      "main": [
+        [
+          {
+            "node": "Route by Property",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lookup Rejected Request": {
+      "main": [
+        [
+          {
+            "node": "Update Status - Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify User - Approved (ManyChat)": {
+      "main": [
+        [
+          {
+            "node": "Notify Admin - Approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify User - Rejected (ManyChat)": {
+      "main": [
+        [
+          {
+            "node": "Notify Admin - Rejected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "timezone": "EDT",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "YOUR_VERSION_ID",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_INSTANCE_ID"
+  },
+  "id": "YOUR_WORKFLOW_ID",
+  "tags": []
+}

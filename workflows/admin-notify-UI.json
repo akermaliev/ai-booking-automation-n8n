@@ -1,0 +1,403 @@
+{
+  "name": "Booking System - Admin Notification Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8fe7f7d3-cf8a-4355-834b-89772e501511",
+              "name": "=requestId",
+              "value": "=={{$json.body.requestId}}",
+              "type": "string"
+            },
+            {
+              "id": "04db6849-c1f9-49d1-81f4-025062588c9a",
+              "name": "=msg",
+              "value": "=={{ \n\"New booking request\\n\" +\n\"Request ID: #\" + ($json.body.requestId || $json.body.appId || \"-\") + \"\\n\\n\" +\n\"Name: \" + ($json.body.name || \"-\") + \"\\n\" +\n\"Phone: \" + ($json.body.phone || \"-\") + \"\\n\" +\n\"Dates: \" + ($json.body.checkIn || \"-\") + \" -> \" + ($json.body.checkOut || \"-\") + \"\\n\" +\n\"Guests: \" + ($json.body.guests || \"-\") + \"\\n\" +\n\"Property: \" + ($json.body.house || \"-\") + \"\\n\" +\n\"Payment: \" + (($json.body.paymentAmount || $json.body.deposit || \"-\")) + \" (\" + ($json.body.paymentType || $json.body.paymentMethod || \"-\") + \")\\n\\n\" +\n\"Please verify payment and select an action below.\"\n}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        160,
+        -48
+      ],
+      "id": "58ff3190-dfac-4d32-9b62-0be99ee82d54",
+      "name": "Prepare Booking Data"
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=={{ $node[\"Prepare Booking Data\"].json.msg }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Approve",
+                    "additionalFields": {
+                      "callback_data": "==approve|{{$json.requestId}}"
+                    }
+                  },
+                  {
+                    "text": "Reject",
+                    "additionalFields": {
+                      "callback_data": "==reject|{{$json.requestId}}"
+                    }
+                  },
+                  {
+                    "text": "Details",
+                    "additionalFields": {
+                      "callback_data": "==info|{{$json.requestId}}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        624,
+        -48
+      ],
+      "id": "c10741c7-3024-41ca-9ed3-ffd5c1e28a9d",
+      "name": "Notify Admin (Telegram)",
+      "webhookId": "YOUR_WEBHOOK_ID",
+      "credentials": {
+        "telegramApi": {
+          "id": "YOUR_TELEGRAM_CREDENTIAL_ID",
+          "name": "YOUR_TELEGRAM_BOT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "YOUR_WEBHOOK_PATH",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -80,
+        -48
+      ],
+      "id": "92376b61-4594-4c23-b1d4-59585966e33b",
+      "name": "Webhook",
+      "webhookId": "YOUR_WEBHOOK_ID"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        848,
+        -48
+      ],
+      "id": "9b678465-1fd6-4f1c-911c-1186206f5b7c",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Booking Requests",
+          "cachedResultUrl": "YOUR_SHEET_URL"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "YOUR_SHEET_TAB_ID",
+          "mode": "list",
+          "cachedResultName": "Requests",
+          "cachedResultUrl": "YOUR_SHEET_URL#gid=YOUR_SHEET_GID"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "requestId": "={{ $node[\"Webhook\"].json.body.requestId }}",
+            "name": "={{ \"'\" + $node[\"Webhook\"].json.body.name }}",
+            "createdAt": "={{ new Date().toISOString() }}",
+            "house": "={{ $node[\"Webhook\"].json.body.house }}",
+            "sauna": "={{ [\"true\",\"1\",\"yes\",\"y\"].includes(String($node[\"Webhook\"].json.body.sauna ?? \"\").toLowerCase()) }}",
+            "jacuzzi": "={{ [\"true\",\"1\",\"yes\",\"y\"].includes(String($node[\"Webhook\"].json.body.jacuzzi ?? \"\").toLowerCase()) }}",
+            "guests": "={{ Number(String($node[\"Webhook\"].json.body.guests ?? \"\").replace(/[^\\d]/g,\"\")) || 0 }}",
+            "checkIn": "={{ $node[\"Webhook\"].json.body.checkIn }}",
+            "paymentAmount": "={{ Number(String($node[\"Webhook\"].json.body.paymentAmount ?? $node[\"Webhook\"].json.body.deposit ?? \"\").replace(/[^\\d]/g,\"\")) || 0 }}",
+            "checkOut": "={{ $node[\"Webhook\"].json.body.checkOut }}",
+            "paymentType": "={{ $node[\"Webhook\"].json.body.paymentType ?? $node[\"Webhook\"].json.body.paymentMethod ?? \"—\" }}",
+            "comments": "={{ $node[\"Webhook\"].json.body.comments ?? \"\" }}",
+            "status": "PENDING",
+            "contactId": "={{ $node[\"Webhook\"].json.body.contactId }}",
+            "hot_tub": "={{ [\"true\",\"1\",\"yes\",\"y\"].includes(String($node[\"Webhook\"].json.body.hot_tub ?? \"\").toLowerCase()) }}",
+            "phone": "={{\n  (() => {\n    const raw = String($node[\"Webhook\"].json.body.phone ?? \"\").trim();\n    if (!raw) return \"\";\n\n    // keep digits only\n    let digits = raw.replace(/\\D/g, \"\");\n\n    // -------- KG (Kyrgyzstan) --------\n    // 0777..., 777777777, 996...\n    if (\n      (digits.startsWith(\"0\") && digits.length === 10) ||\n      digits.length === 9 ||\n      digits.startsWith(\"996\")\n    ) {\n      if (digits.startsWith(\"0\")) digits = \"996\" + digits.slice(1);\n      if (digits.length === 9) digits = \"996\" + digits;\n\n      if (digits.startsWith(\"996\") && digits.length === 12) {\n        const rest = digits.slice(3);\n        return `kg 996 ${rest.slice(0,3)}-${rest.slice(3,5)}-${rest.slice(5,7)}-${rest.slice(7,9)}`;\n      }\n    }\n\n    // -------- US --------\n    if (digits.startsWith(\"1\") && digits.length === 11) {\n      const rest = digits.slice(1);\n      return `us 1 ${rest.slice(0,3)}-${rest.slice(3,6)}-${rest.slice(6,10)}`;\n    }\n\n    // -------- KZ --------\n    if (digits.startsWith(\"7\") && digits.length === 11) {\n      const rest = digits.slice(1);\n      return `kz 7 ${rest.slice(0,3)}-${rest.slice(3,6)}-${rest.slice(6,8)}-${rest.slice(8,10)}`;\n    }\n\n    // -------- UZ (Uzbekistan) --------\n    // 998901234567 or 901234567\n    if (digits.length === 9) {\n      digits = \"998\" + digits;\n    }\n    if (digits.startsWith(\"998\") && digits.length === 12) {\n      const rest = digits.slice(3);\n      return `uz 998 ${rest.slice(0,2)}-${rest.slice(2,5)}-${rest.slice(5,7)}-${rest.slice(7,9)}`;\n    }\n\n    // -------- fallback --------\n    return `intl ${digits}`;\n  })()\n}}\n"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "contactId",
+              "displayName": "contactId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "requestId",
+              "displayName": "requestId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "createdAt",
+              "displayName": "createdAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "house",
+              "displayName": "house",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sauna",
+              "displayName": "sauna",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "jacuzzi",
+              "displayName": "jacuzzi",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "hot_tub",
+              "displayName": "hot_tub",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "guests",
+              "displayName": "guests",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "checkIn",
+              "displayName": "checkIn",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "checkOut",
+              "displayName": "checkOut",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "paymentAmount",
+              "displayName": "paymentAmount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "paymentType",
+              "displayName": "paymentType",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "comments",
+              "displayName": "comments",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        384,
+        -48
+      ],
+      "id": "f482aea6-70de-4821-b82f-f7f668001ff0",
+      "name": "Log Booking Request",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_GOOGLE_SHEETS_CREDENTIAL_ID",
+          "name": "Google Sheets (Template)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Template workflow notes",
+        "height": 80,
+        "width": 166
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        -320
+      ],
+      "id": "f4ebbc50-646b-49e8-9900-9ee061f929b7",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Booking Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        []
+      ]
+    },
+    "Prepare Booking Data": {
+      "main": [
+        [
+          {
+            "node": "Log Booking Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Admin (Telegram)": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Booking Request": {
+      "main": [
+        [
+          {
+            "node": "Notify Admin (Telegram)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "YOUR_VERSION_ID",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "YOUR_INSTANCE_ID"
+  },
+  "id": "YOUR_WORKFLOW_ID",
+  "tags": []
+}
